@@ -17,12 +17,12 @@
   font-size: 9px;
   letter-spacing: .16em;
   text-transform: uppercase;
-  color: var(--mut);
+  color: var(--bar);
 }
 .tabLeft, .tabRight { display: flex; align-items: center; gap: 8px; }
 .tabBtn {
   background: none; border: none;
-  color: var(--mut); font: inherit; font-size: 9px;
+  color: var(--bar); font: inherit; font-size: 9px;
   letter-spacing: .16em; text-transform: uppercase;
   cursor: pointer; transition: color .15s;
 }
@@ -30,7 +30,7 @@
 .tabBtn:focus-visible { outline: 1px solid var(--sig); outline-offset: 2px; }
 
 .onDot { color: var(--sig); }
-.sep { color: rgba(255,255,255,.12); }
+.sep { color: rgba(255,255,255,.42); }
 
 .buf {
   max-height: 120px;
@@ -55,7 +55,7 @@
   border-top: 1px solid var(--line);
 }
 .promptUser { color: var(--sig); font-size: 10.5px; }
-.promptSep  { color: var(--dim); }
+.promptSep  { color: var(--mut); }
 .promptDir  { color: var(--vio); font-size: 10.5px; }
 
 .input {
@@ -68,7 +68,7 @@
   color: var(--sig);
   caret-color: var(--sig);
 }
-.input::placeholder { color: var(--dim); }
+.input::placeholder { color: var(--mut); }
 .input { min-width: 0; }
 
 @media (max-width: 720px) {

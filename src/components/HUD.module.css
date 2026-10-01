@@ -15,7 +15,7 @@
   font-size: 9px;
   letter-spacing: .18em;
   text-transform: uppercase;
-  color: var(--mut);
+  color: var(--bar);
   border-bottom: 1px solid rgba(255,255,255,.09);
 }
 
@@ -35,8 +35,8 @@
 
 .brand  { color: var(--txt); }
 .sig    { color: var(--sig); }
-.dim    { color: var(--dim); }
-.sep    { color: rgba(255,255,255,.28); }
+.dim    { color: var(--mut); }
+.sep    { color: rgba(255,255,255,.42); }
 .tabular { font-variant-numeric: tabular-nums; }
 
 /* pulsing dot */
@@ -73,7 +73,7 @@
 .navBtn {
   background: none;
   border: none;
-  color: var(--mut);
+  color: var(--bar);
   font: inherit;
   font-size: 10px;
   letter-spacing: .12em;
@@ -99,7 +99,7 @@
   letter-spacing: .1em;
   text-transform: uppercase;
   border-radius: 2px;
-  color: var(--mut);
+  color: var(--bar);
 }
 .dot {
   width: 5px; height: 5px;

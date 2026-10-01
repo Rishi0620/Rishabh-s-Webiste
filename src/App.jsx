@@ -133,13 +133,13 @@ export default function App() {
         onClick={onCanvasClick}
       />
 
-      {/* CRT scanlines + vignette */}
+      {/* CRT scanlines over everything; the vignette sits under the UI so it only shades the scene */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none',
         background: 'repeating-linear-gradient(to bottom,transparent 0,transparent 2px,rgba(0,0,0,.05) 3px,transparent 4px)',
       }} />
       <div style={{
-        position: 'fixed', inset: 0, zIndex: 9998, pointerEvents: 'none',
+        position: 'fixed', inset: 0, zIndex: 10, pointerEvents: 'none',
         background: 'radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.72) 100%)',
       }} />
 

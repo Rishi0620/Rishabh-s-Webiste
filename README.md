@@ -132,6 +132,7 @@ npx vercel@latest deploy --prod
 --amb:  #FFC76A   /* amber */
 --red:  #FF6A6A   /* errors */
 --txt:  #f0faf4   /* body text */
+--bar:  #dcefe5   /* top and bottom bar text */
 --mut:  #b8d4c4   /* muted text */
 --dim:  #8aaa98   /* dim text */
 ```
