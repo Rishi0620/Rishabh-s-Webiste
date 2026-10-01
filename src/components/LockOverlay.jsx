@@ -11,7 +11,7 @@ export function LockOverlay({ onEnter }) {
         <span><kbd>W A S D</kbd> move</span>
         <span><kbd>Mouse</kbd> look</span>
         <span><kbd>Click</kbd> node to open</span>
-        <span><kbd>ESC</kbd> exit</span>
+        <span><kbd>ESC</kbd> release cursor</span>
       </div>
       <div className={`${styles.keys} ${styles.touchOnly}`}>
         <span><kbd>Drag</kbd> look</span>
@@ -26,7 +26,7 @@ export function Crosshair({ label }) {
   return (
     <>
       <div className={styles.xhair} />
-      {label && <div className={styles.xhairLabel}>{label} · click to open</div>}
+      {label && <div className={styles.xhairLabel}>{label}</div>}
     </>
   )
 }
@@ -37,7 +37,7 @@ export function ControlsHint() {
       <span className={styles.mouseOnly}><kbd className={styles.kbd}>W A S D</kbd> move</span>
       <span className={styles.mouseOnly}><kbd className={styles.kbd}>Mouse</kbd> look</span>
       <span className={styles.mouseOnly}><kbd className={styles.kbd}>Click</kbd> fly / open node</span>
-      <span className={styles.mouseOnly}><kbd className={styles.kbd}>ESC</kbd> exit</span>
+      <span className={styles.mouseOnly}><kbd className={styles.kbd}>ESC</kbd> release cursor</span>
       <span className={styles.mouseOnly}><kbd className={styles.kbd}>/</kbd> console</span>
       <span className={styles.touchOnly}><kbd className={styles.kbd}>Drag</kbd> look</span>
       <span className={styles.touchOnly}><kbd className={styles.kbd}>Tap</kbd> fly / open node</span>

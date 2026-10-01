@@ -83,17 +83,18 @@ component to `CONTENT_MAP` and `PANEL_META` in `Panel.jsx`.
 
 | Input | Action |
 |---|---|
-| **ENTER SYSTEM** / click | Enter the 3D space |
-| **Mouse move** | Look around |
+| **ENTER SYSTEM** / click | Enter the 3D space; the cursor is captured |
+| **Mouse move** | Look around, a full 360° like a PC game |
 | **W A S D** / arrows | Fly forward / left / back / right |
 | **Q / E** | Fly down / up |
 | **Click a node** | Fly to it and open its panel |
 | **Click empty space** | Fly forward |
-| **Double-click** | Pointer lock (unlimited turning) |
-| **ESC** | Leave the 3D space |
+| **✕ CLOSE** on a panel | Back to free look |
+| **ESC** | Release the cursor and leave the 3D space |
 | **/** | Focus the console |
 | Touch: **drag** / **tap** | Look around / fly to a node |
 
+While a panel is open the cursor is visible and the view holds still; close the panel to look around again.
 The top nav works without entering the 3D space, and the site falls back to panels only when WebGL is unavailable.
 
 ## Console commands

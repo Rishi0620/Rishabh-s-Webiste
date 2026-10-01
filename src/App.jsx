@@ -35,6 +35,10 @@ export default function App() {
   const [flying,      setFlying]      = useState(false)
   const [hintVisible, setHintVisible] = useState(false)
   const [webglFailed, setWebglFailed] = useState(false)
+  const hintShown = useRef(false)
+
+  // Free look: inside the 3D space with nothing open. A panel takes the cursor back and holds the view still.
+  const lookMode = entered && !panelOpen && !webglFailed
 
   const onArrive = useCallback((id) => {
     setCurrentNode(id)
@@ -44,7 +48,7 @@ export default function App() {
 
   const onInitError = useCallback(() => setWebglFailed(true), [])
 
-  const { enter, exit, setKey, setLook, nudgeLook, rebaseLook, setViewBias, getPosition, flyToNode, pick } = useScene({
+  const { setLookEnabled, setKey, nudgeLook, setViewBias, getPosition, flyToNode, pick } = useScene({
     canvasRef,
     onArrive,
     onHover: setHoveredNode,
@@ -52,36 +56,61 @@ export default function App() {
     onInitError,
   })
 
-  const handleEnter = useCallback(() => {
-    if (webglFailed) return
-    setEntered(true)
-    enter()
-  }, [enter, webglFailed])
-  const handleExit = useCallback(() => {
-    setEntered(false)
-    exit()
-    if (document.pointerLockElement) document.exitPointerLock?.()
-  }, [exit])
+  const handleExit = useCallback(() => setEntered(false), [])
 
-  const { onCanvasClick } = useCamera({
+  const { onCanvasClick, capture, captured, captureSupported } = useCamera({
     canvasRef,
     entered,
-    onEnter: handleEnter,
+    lookMode,
     onExit: handleExit,
     setKey,
-    setLook,
     nudgeLook,
-    rebaseLook,
     pick,
   })
 
-  // show the controls hint for a few seconds each time the visitor enters
   useEffect(() => {
-    if (!entered) { setHintVisible(false); return }
+    setLookEnabled(lookMode)
+  }, [lookMode, setLookEnabled])
+
+  // Entering drops the visitor straight into free look, so the intro panel steps aside.
+  const handleEnter = useCallback(() => {
+    if (webglFailed) return
+    setEntered(true)
+    setPanelOpen(false)
+    capture()
+  }, [capture, webglFailed])
+
+  // Jumping to a section (top nav, panel buttons, console) opens its panel straight away,
+  // and works from the splash screen too.
+  const handleNav = useCallback((id) => {
+    if (!NODE_MAP[id]) return
+    if (!webglFailed) setEntered(true)
+    setOpenPanel(id)
+    setPanelOpen(true)
+    flyToNode(id)
+  }, [flyToNode, webglFailed])
+
+  // Closing a panel hands control back to the mouse.
+  const closePanel = useCallback(() => {
+    setPanelOpen(false)
+    if (entered) capture()
+  }, [entered, capture])
+
+  // show the controls hint the first time the visitor gets free look after entering
+  useEffect(() => {
+    if (!entered) hintShown.current = false
+  }, [entered])
+
+  useEffect(() => {
+    if (!lookMode || hintShown.current) return
+    hintShown.current = true
     setHintVisible(true)
     const id = setTimeout(() => setHintVisible(false), HINT_MS)
-    return () => clearTimeout(id)
-  }, [entered])
+    return () => {
+      clearTimeout(id)
+      setHintVisible(false)
+    }
+  }, [lookMode])
 
   useEffect(() => {
     const apply = () => setViewBias(...viewBiasFor(panelOpen))
@@ -90,25 +119,17 @@ export default function App() {
     return () => window.removeEventListener('resize', apply)
   }, [panelOpen, setViewBias])
 
-  const handlePanelNav = useCallback((id) => {
-    setOpenPanel(id)
-    setPanelOpen(true)
-    flyToNode(id)
-  }, [flyToNode])
-
-  const closePanel = useCallback(() => setPanelOpen(false), [])
-
   const showOverlay = !entered && !webglFailed
-  // no "click to open" prompt for the node whose panel is already showing
-  const alreadyOpen = panelOpen && hoveredNode === openPanel
-  const crosshairLabel = hoveredNode && !alreadyOpen ? NODE_MAP[hoveredNode]?.label : null
+  const crosshairLabel =
+    captureSupported && !captured ? 'click to look around' :
+    hoveredNode ? `${NODE_MAP[hoveredNode]?.label} · click to open` : null
 
   return (
     <>
       <canvas
         ref={canvasRef}
         aria-label="3D node graph of portfolio sections. Use the navigation bar above to open a section."
-        style={{ position: 'fixed', inset: 0, display: 'block', touchAction: 'none', cursor: entered ? 'none' : 'default' }}
+        style={{ position: 'fixed', inset: 0, display: 'block', touchAction: 'none' }}
         onClick={onCanvasClick}
       />
 
@@ -124,24 +145,24 @@ export default function App() {
 
       {showOverlay && <LockOverlay onEnter={handleEnter} />}
 
-      {entered && <Crosshair label={crosshairLabel} />}
+      {lookMode && <Crosshair label={crosshairLabel} />}
 
       <FlyBar visible={flying} />
 
-      <HUD currentNode={currentNode} getPosition={getPosition} onNav={flyToNode} />
+      <HUD currentNode={currentNode} getPosition={getPosition} onNav={handleNav} />
 
-      {entered && hintVisible && <ControlsHint />}
+      {lookMode && hintVisible && <ControlsHint />}
 
       {panelOpen && (
         <Panel
           nodeId={openPanel}
           onClose={closePanel}
-          onNav={handlePanelNav}
+          onNav={handleNav}
           notice={webglFailed ? 'WebGL is unavailable in this browser, so the 3D view is off. Everything else works.' : null}
         />
       )}
 
-      <Console onGoto={flyToNode} />
+      <Console onGoto={handleNav} />
     </>
   )
 }

@@ -52,16 +52,15 @@ function createState() {
     nodeRings: {},
     edgeMeshes: [],
     orbitRings: {},
-    // orientation = base (set by flights) + look (set by input) + bias (set by layout)
+    // orientation = base (set by flights and by looking around) + bias (set by layout)
     baseYaw: 0,
     basePitch: 0,
-    lookYaw: 0,
-    lookPitch: 0,
     biasYaw: 0,
     biasPitch: 0,
     biasYawTarget: 0,
     biasPitchTarget: 0,
-    entered: false,
+    // free look + movement; off while the overlay or a panel has the visitor's attention
+    lookEnabled: false,
     keys: { w: false, a: false, s: false, d: false, q: false, e: false },
     fly: null,
     currentNode: 'core',
@@ -148,12 +147,6 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
       const t = s.clock.elapsedTime
       const cb = cbRef.current
 
-      // look offset drifts back to centre while the pointer isn't driving it
-      if (!s.entered) {
-        const k = Math.min(1, dt * 4)
-        s.lookYaw -= s.lookYaw * k
-        s.lookPitch -= s.lookPitch * k
-      }
       const bk = Math.min(1, dt * 3)
       s.biasYaw += (s.biasYawTarget - s.biasYaw) * bk
       s.biasPitch += (s.biasPitchTarget - s.biasPitch) * bk
@@ -177,15 +170,15 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
       }
 
       camEuler.set(
-        clamp(s.basePitch + s.lookPitch + s.biasPitch, -MAX_PITCH, MAX_PITCH),
-        s.baseYaw + s.lookYaw + s.biasYaw,
+        clamp(s.basePitch + s.biasPitch, -MAX_PITCH, MAX_PITCH),
+        s.baseYaw + s.biasYaw,
         0,
         'YXZ'
       )
       s.camera.quaternion.setFromEuler(camEuler)
 
       // WASD movement
-      if (!s.fly && s.entered) {
+      if (!s.fly && s.lookEnabled) {
         moveDir.set(
           (s.keys.d ? 1 : 0) - (s.keys.a ? 1 : 0),
           (s.keys.e ? 1 : 0) - (s.keys.q ? 1 : 0),
@@ -199,7 +192,7 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
       s.camera.updateMatrixWorld()
 
       // hover detection (crosshair = screen centre)
-      if (s.entered) {
+      if (s.lookEnabled) {
         s.pointer.set(0, 0)
         s.raycaster.setFromCamera(s.pointer, s.camera)
         const hits = s.raycaster.intersectObjects(Object.values(s.nodeMeshes))
@@ -273,40 +266,24 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
   }, [canvasRef])
 
   // ── exposed controls ────────────────────────────────────────────────────────
-  const enter = useCallback(() => { stateRef.current.entered = true }, [])
-
-  const exit = useCallback(() => {
+  const setLookEnabled = useCallback((enabled) => {
     const s = stateRef.current
-    s.entered = false
-    Object.keys(s.keys).forEach((k) => { s.keys[k] = false })
+    s.lookEnabled = enabled
+    if (!enabled) Object.keys(s.keys).forEach((k) => { s.keys[k] = false })
   }, [])
 
   const setKey = useCallback((key, down) => {
     stateRef.current.keys[key] = down
   }, [])
 
-  // absolute look offset (mouse position relative to screen centre)
-  const setLook = useCallback((yaw, pitch) => {
-    const s = stateRef.current
-    s.lookYaw = yaw
-    s.lookPitch = clamp(pitch, -MAX_PITCH, MAX_PITCH)
-  }, [])
-
-  // relative look (pointer lock, touch drag)
+  // relative look (captured mouse, touch drag): yaw is unbounded, so the view can turn all the way round
   const nudgeLook = useCallback((dYaw, dPitch) => {
     const s = stateRef.current
-    const fixed = s.basePitch + s.biasPitchTarget
-    s.lookYaw += dYaw
-    s.lookPitch = clamp(s.lookPitch + dPitch, -MAX_PITCH - fixed, MAX_PITCH - fixed)
-  }, [])
-
-  // swap the look offset for a new one without moving the view
-  const rebaseLook = useCallback((yaw, pitch) => {
-    const s = stateRef.current
-    s.baseYaw += s.lookYaw - yaw
-    s.basePitch = clamp(s.basePitch + s.lookPitch - pitch, -MAX_PITCH, MAX_PITCH)
-    s.lookYaw = yaw
-    s.lookPitch = pitch
+    // a flight to a node steers the camera itself
+    if (!s.lookEnabled || s.fly?.node) return
+    const bias = s.biasPitchTarget
+    s.baseYaw += dYaw
+    s.basePitch = clamp(s.basePitch + dPitch, -MAX_PITCH - bias, MAX_PITCH - bias)
   }, [])
 
   // keeps the focused node clear of whatever UI is covering part of the canvas
@@ -335,11 +312,9 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
     const standoff = NODE_STANDOFF * clamp(1 / s.camera.aspect, 1, 2.2)
     const toPos = nodePos.clone().addScaledVector(dir, n.r + standoff)
 
-    // end the flight facing the node, given wherever the pointer currently has the view offset
-    const offYaw = s.entered ? s.lookYaw : 0
-    const offPitch = s.entered ? s.lookPitch : 0
-    const toYaw = Math.atan2(dir.x, dir.z) - offYaw
-    const toPitch = clamp(Math.asin(clamp(-dir.y, -1, 1)) - offPitch, -MAX_PITCH, MAX_PITCH)
+    // end the flight facing the node
+    const toYaw = Math.atan2(dir.x, dir.z)
+    const toPitch = clamp(Math.asin(clamp(-dir.y, -1, 1)), -MAX_PITCH, MAX_PITCH)
 
     s.fly = {
       node: id,
@@ -356,10 +331,10 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
     cbRef.current.onFlyChange?.(true)
   }, [])
 
-  // click / tap: fly to the node under the given point, or forward along that ray
-  const pick = useCallback((ndcX = 0, ndcY = 0) => {
+  // click / tap: fly to the node under the given point, or (unless nodesOnly) forward along that ray
+  const pick = useCallback((ndcX = 0, ndcY = 0, nodesOnly = false) => {
     const s = stateRef.current
-    if (!s.camera || !s.entered) return
+    if (!s.camera) return
     // a flight to a node always completes, so the panel and the scene can't disagree about where we are
     if (s.fly?.node) return
     s.pointer.set(ndcX, ndcY)
@@ -369,6 +344,7 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
       flyToNode(hits[0].object.userData.nodeId)
       return
     }
+    if (nodesOnly) return
     const forward = 25
     s.fly = {
       node: null,
@@ -380,7 +356,7 @@ export function useScene({ canvasRef, onArrive, onHover, onFlyChange, onInitErro
     cbRef.current.onFlyChange?.(true)
   }, [flyToNode])
 
-  return { enter, exit, setKey, setLook, nudgeLook, rebaseLook, setViewBias, getPosition, flyToNode, pick }
+  return { setLookEnabled, setKey, nudgeLook, setViewBias, getPosition, flyToNode, pick }
 }
 
 // ── scene builders ─────────────────────────────────────────────────────────────
