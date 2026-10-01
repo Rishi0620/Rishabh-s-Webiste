@@ -1,0 +1,103 @@
+.hud {
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  z-index: 50;
+  background: rgba(3,5,9,0.88);
+  backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--line);
+}
+
+.row1 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 14px;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--mut);
+  border-bottom: 1px solid rgba(255,255,255,.09);
+}
+
+.row2 {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 14px;
+}
+
+.left, .right {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brand  { color: var(--txt); }
+.sig    { color: var(--sig); }
+.dim    { color: var(--dim); }
+.sep    { color: rgba(255,255,255,.28); }
+.tabular { font-variant-numeric: tabular-nums; }
+
+/* pulsing dot */
+.pulDot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+  background: var(--sig);
+  animation: pulDot 2s ease-out infinite;
+}
+@keyframes pulDot {
+  0%,100% { box-shadow: 0 0 0 0 rgba(124,255,178,.6); }
+  50%      { box-shadow: 0 0 0 5px rgba(124,255,178,0); }
+}
+
+/* latency bars */
+.latBar {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 11px;
+}
+.latBar span {
+  width: 3px;
+  border-radius: 1px;
+  transition: height .5s;
+}
+
+/* nav */
+.nav {
+  display: flex;
+  gap: 16px;
+}
+.navBtn {
+  background: none;
+  border: none;
+  color: var(--mut);
+  font: inherit;
+  font-size: 10px;
+  letter-spacing: .12em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: color .15s;
+  padding: 0;
+}
+.navBtn:hover { color: var(--sig); }
+.navBtn.active { color: var(--sig); }
+
+/* chips */
+.chips { display: flex; gap: 5px; }
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 7px;
+  border: 1px solid var(--line);
+  font-size: 9px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  border-radius: 2px;
+  color: var(--mut);
+}
+.dot {
+  width: 5px; height: 5px;
+  border-radius: 50%;
+}

@@ -1,0 +1,70 @@
+.con {
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 50;
+  background: rgba(3,5,9,0.95);
+  border-top: 1px solid rgba(124,255,178,0.1);
+  backdrop-filter: blur(12px);
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 12px;
+  border-bottom: 1px solid var(--line);
+  font-size: 9px;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--mut);
+}
+.tabLeft, .tabRight { display: flex; align-items: center; gap: 8px; }
+.tabBtn {
+  background: none; border: none;
+  color: var(--mut); font: inherit; font-size: 9px;
+  letter-spacing: .16em; text-transform: uppercase;
+  cursor: pointer; transition: color .15s;
+}
+.tabBtn:hover { color: var(--sig); }
+
+.onDot { color: var(--sig); }
+.sep { color: rgba(255,255,255,.12); }
+
+.buf {
+  max-height: 120px;
+  overflow-y: auto;
+  padding: 5px 12px;
+  line-height: 1.65;
+}
+.buf::-webkit-scrollbar { width: 3px; }
+.buf::-webkit-scrollbar-thumb { background: rgba(124,255,178,.15); }
+
+.prompt {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-top: 1px solid var(--line);
+}
+.promptUser { color: var(--sig); font-size: 10.5px; }
+.promptSep  { color: var(--dim); }
+.promptDir  { color: var(--vio); font-size: 10.5px; }
+
+.input {
+  flex: 1;
+  background: none;
+  border: none;
+  outline: none;
+  font: inherit;
+  font-size: 10.5px;
+  color: var(--sig);
+  caret-color: var(--sig);
+}
+.input::placeholder { color: var(--dim); }
+
+.cursor {
+  color: var(--sig);
+  animation: blink 1s steps(1) infinite;
+}
+@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
