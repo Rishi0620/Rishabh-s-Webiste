@@ -1,8 +1,10 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import styles from './HUD.module.css'
+import { NODES } from '../data/graph'
+import { useCssVarHeight } from '../hooks/useCssVarHeight'
 
 function Clock() {
-  const [now, setNow] = useState(new Date())
+  const [now, setNow] = useState(() => new Date())
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 1000)
     return () => clearInterval(id)
@@ -22,7 +24,7 @@ function LatencyBars() {
     return () => clearInterval(id)
   }, [])
   return (
-    <div className={styles.latBar}>
+    <div className={styles.latBar} aria-hidden="true">
       {bars.map((h, i) => (
         <span key={i} style={{height:`${h}%`, background: h > 85 ? 'var(--amb)' : 'var(--sig)'}} />
       ))}
@@ -30,15 +32,29 @@ function LatencyBars() {
   )
 }
 
-export function HUD({ currentNode, position, onNav }) {
-  const nodes = ['core','about','projects','experience','skills','contact','archive']
+// Polls the camera a few times a second instead of re-rendering the app every frame.
+function Position({ getPosition }) {
+  const [text, setText] = useState('x:0.0 y:0.0 z:22.0')
+  useEffect(() => {
+    const id = setInterval(() => {
+      const p = getPosition()
+      if (p) setText(`x:${p.x.toFixed(1)} y:${p.y.toFixed(1)} z:${p.z.toFixed(1)}`)
+    }, 150)
+    return () => clearInterval(id)
+  }, [getPosition])
+  return <span className={`${styles.dim} ${styles.tabular} ${styles.wideOnly}`}>{text}</span>
+}
+
+export function HUD({ currentNode, getPosition, onNav }) {
+  const ref = useRef(null)
+  useCssVarHeight(ref, '--hud-h')
+
   return (
-    <header className={styles.hud}>
+    <header ref={ref} className={styles.hud}>
       {/* row 1 — system info */}
       <div className={styles.row1}>
         <div className={styles.left}>
-          {/* mini graph icon */}
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
             <circle cx="8" cy="8" r="2" fill="var(--sig)"/>
             <circle cx="2" cy="3" r="1.4" fill="rgba(124,255,178,.5)"/>
             <circle cx="14" cy="3" r="1.4" fill="rgba(124,255,178,.5)"/>
@@ -52,17 +68,15 @@ export function HUD({ currentNode, position, onNav }) {
           <span className={styles.brand}>UserOS 1.0</span>
           <span className={styles.sep}>|</span>
           <span className={styles.sig}>/{currentNode.toUpperCase()}</span>
-          <span className={styles.sep}>|</span>
-          <span className={styles.dim}>
-            x:{position.x.toFixed(1)} y:{position.y.toFixed(1)} z:{position.z.toFixed(1)}
-          </span>
+          <span className={`${styles.sep} ${styles.wideOnly}`}>|</span>
+          <Position getPosition={getPosition} />
         </div>
         <div className={styles.right}>
-          <LatencyBars />
-          <span className={styles.sig}>4ms</span>
-          <span className={styles.sep}>|</span>
-          <Clock />
-          <span className={styles.sep}>|</span>
+          <span className={styles.wideOnly}><LatencyBars /></span>
+          <span className={`${styles.sig} ${styles.wideOnly}`}>4ms</span>
+          <span className={`${styles.sep} ${styles.wideOnly}`}>|</span>
+          <span className={styles.wideOnly}><Clock /></span>
+          <span className={`${styles.sep} ${styles.wideOnly}`}>|</span>
           <span className={styles.pulDot} />
           <span className={styles.sig}>ONLINE</span>
         </div>
@@ -70,18 +84,19 @@ export function HUD({ currentNode, position, onNav }) {
 
       {/* row 2 — nav */}
       <div className={styles.row2}>
-        <nav className={styles.nav}>
-          {nodes.map(id => (
+        <nav className={styles.nav} aria-label="Sections">
+          {NODES.map(({ id }) => (
             <button
               key={id}
               className={`${styles.navBtn} ${id === currentNode ? styles.active : ''}`}
+              aria-current={id === currentNode ? 'page' : undefined}
               onClick={() => onNav(id)}
             >
               / {id.toUpperCase()}
             </button>
           ))}
         </nav>
-        <div className={styles.chips}>
+        <div className={styles.chips} aria-hidden="true">
           <span className={styles.chip}>
             <span className={styles.dot} style={{background:'var(--sig)'}}/>SIGNAL.LOCK
           </span>

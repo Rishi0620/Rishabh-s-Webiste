@@ -1,9 +1,17 @@
 import styles from './Panel.module.css'
-import { PROJECTS, EXPERIENCE, SKILLS, CONTACT, ARCHIVE, PROFILE } from '../data/content'
+import { NODES } from '../data/graph'
+import { PROJECTS, EXPERIENCE, SKILLS, CONTACT, AVAILABILITY, ARCHIVE, PROFILE } from '../data/content'
+
+const COLORS = { sig: 'var(--sig)', vio: 'var(--vio)', amb: 'var(--amb)' }
+const VIO_TAG = { color: 'var(--vio)', borderColor: 'rgba(184,156,255,.22)' }
 
 // ── shared primitives ──────────────────────────────────────────────────────────
 function SectionLabel({ children }) {
   return <div className={styles.sectionLabel}>{children}</div>
+}
+
+function ExtLink({ href, className, children }) {
+  return <a href={href} className={className} target="_blank" rel="noopener noreferrer">{children}</a>
 }
 
 function SkillBar({ label, value, color, sub }) {
@@ -24,26 +32,29 @@ function SkillBar({ label, value, color, sub }) {
   )
 }
 
-const STATUS_COLORS = { sig: 'var(--sig)', vio: 'var(--vio)', amb: 'var(--amb)' }
+function StatusPill({ color, children }) {
+  return (
+    <span className={styles.statusPill} style={{ color, borderColor: `color-mix(in srgb, ${color} 30%, transparent)` }}>
+      <span className={styles.statusDot} style={{ background: color }} />
+      {children}
+    </span>
+  )
+}
 
 function ProjectCard({ p }) {
-  const ac = STATUS_COLORS[p.accentColor] || 'var(--sig)'
-  const sc = STATUS_COLORS[p.statusColor] || 'var(--sig)'
+  const ac = COLORS[p.accentColor] || COLORS.sig
+  const sc = COLORS[p.statusColor] || COLORS.sig
+  const { live, repo } = p.links
   return (
-    <div className={styles.pCard} style={{ '--ac': ac }}>
+    <article className={styles.pCard} style={{ '--ac': ac }}>
       <div className={styles.pCardTop}>
-        <div>
-          <div className={styles.pMeta}>
-            {p.id} / {p.runtime} / {p.region}
-          </div>
-          <div className={styles.pName}>{p.name}</div>
-          <div className={styles.pTag}>{p.tagline}</div>
+        <div className={styles.pMeta}>
+          {p.id} / {p.runtime} / {p.region}
         </div>
-        <span className={styles.statusPill} style={{ color: sc, borderColor: sc + '44' }}>
-          <span className={styles.statusDot} style={{ background: sc }} />
-          {p.status}
-        </span>
+        <StatusPill color={sc}>{p.status}</StatusPill>
       </div>
+      <h3 className={styles.pName}>{p.name}</h3>
+      <p className={styles.pTag}>{p.tagline}</p>
       <div className={styles.pMetrics}>
         {Object.entries(p.metrics).map(([k, v]) => (
           <div key={k} className={styles.pMetric}>
@@ -53,32 +64,29 @@ function ProjectCard({ p }) {
         ))}
       </div>
       <div className={styles.pStack}>
-        {p.stack.map(s => (
-          <span key={s} className={styles.tag} style={{ color: 'var(--vio)', borderColor: 'rgba(184,156,255,.22)' }}>{s}</span>
-        ))}
+        {p.stack.map(s => <span key={s} className={styles.tag} style={VIO_TAG}>{s}</span>)}
       </div>
       <div className={styles.pFooter}>
-        <span>{p.lines.toLocaleString()} LoC</span>
-        <span>★ {p.stars}</span>
-        {p.uptime != null && (
-          <span style={{ color: p.uptime > 99.9 ? 'var(--sig)' : p.uptime > 99 ? 'var(--amb)' : 'var(--red)' }}>
-            {p.uptime}% SLA
-          </span>
-        )}
+        <span>{p.period}</span>
+        <span className={styles.pLinks}>
+          {live && <ExtLink href={live} className={styles.pLink}>LIVE ↗</ExtLink>}
+          {repo && <ExtLink href={repo} className={styles.pLink}>SOURCE ↗</ExtLink>}
+        </span>
       </div>
-    </div>
+    </article>
   )
 }
 
 function TraceRow({ entry, last }) {
-  const kc = entry.kind === 'EXP' ? 'var(--vio)' : 'var(--sig)'
   const isAcad = entry.kind === 'ACAD'
+  const kc = isAcad ? 'var(--sig)' : 'var(--vio)'
+  const running = entry.status === 'RUNNING'
   return (
     <div className={styles.trRow}>
       <div className={styles.trRail}>
         <div className={styles.trMarker} style={{
           borderColor: kc,
-          background: kc + '22',
+          background: `color-mix(in srgb, ${kc} 14%, transparent)`,
           borderRadius: isAcad ? '50%' : '0',
         }}>
           <span style={{ width: 4, height: 4, borderRadius: isAcad ? '50%' : 0, background: kc, display: 'block' }} />
@@ -86,19 +94,20 @@ function TraceRow({ entry, last }) {
         {!last && <div className={styles.trLine} />}
       </div>
       <div>
-        <div className={styles.trCode}>{entry.code}</div>
-        <div className={styles.trTitle}>{entry.title}</div>
+        <div className={styles.trCode}>
+          {entry.code}
+          <span style={{ color: running ? 'var(--sig)' : 'var(--dim)' }}> · {entry.status}</span>
+        </div>
+        <h3 className={styles.trTitle}>{entry.title}</h3>
         <div className={styles.trWhere}>{entry.where}</div>
-        <div className={styles.trDetail}>{entry.detail}</div>
+        <p className={styles.trDetail}>{entry.detail}</p>
         <div className={styles.trKpis}>
           {entry.kpis.map((k, i) => (
             <span key={k} className={styles.kpi} style={{ color: i === 0 ? kc : 'var(--txt)' }}>{k}</span>
           ))}
         </div>
         <div className={styles.trTags}>
-          {entry.tags.map(t => (
-            <span key={t} className={styles.tag} style={{ color: 'var(--vio)', borderColor: 'rgba(184,156,255,.2)' }}>{t}</span>
-          ))}
+          {entry.tags.map(t => <span key={t} className={styles.tag} style={VIO_TAG}>{t}</span>)}
         </div>
       </div>
     </div>
@@ -106,7 +115,7 @@ function TraceRow({ entry, last }) {
 }
 
 function RadarChart({ axes, values }) {
-  const size = 180, cx = 90, cy = 90, radius = 70, n = axes.length
+  const cx = 90, cy = 90, radius = 62, n = axes.length
   const point = (i, v) => {
     const angle = (Math.PI * 2 * i) / n - Math.PI / 2
     const r = (v / 100) * radius
@@ -114,7 +123,7 @@ function RadarChart({ axes, values }) {
   }
   const poly = values.map((v, i) => point(i, v).join(',')).join(' ')
   return (
-    <svg viewBox="0 0 180 180" width="150" style={{ display: 'block', margin: '0 auto 8px' }}>
+    <svg viewBox="0 0 180 180" width="170" role="img" aria-label={`Focus areas: ${axes.join(', ')}`} style={{ display: 'block', margin: '0 auto 8px' }}>
       <defs>
         <radialGradient id="rf">
           <stop offset="0%" stopColor="rgba(124,255,178,.28)" />
@@ -136,7 +145,7 @@ function RadarChart({ axes, values }) {
         return <circle key={i} cx={x} cy={y} r="2" fill="#7CFFB2" />
       })}
       {axes.map((label, i) => {
-        const [x, y] = point(i, 120)
+        const [x, y] = point(i, 122)
         return (
           <text key={label} x={x} y={y} fill="rgba(232,245,238,.82)"
             textAnchor="middle" dominantBaseline="middle"
@@ -149,6 +158,23 @@ function RadarChart({ axes, values }) {
   )
 }
 
+function ArchiveCard({ item, tone }) {
+  const color = COLORS[tone]
+  return (
+    <div className={styles.archiveCard} style={{
+      borderColor: `color-mix(in srgb, ${color} 18%, transparent)`,
+      background: `color-mix(in srgb, ${color} 3%, transparent)`,
+    }}>
+      <div className={styles.archiveCode}>{item.code}</div>
+      <div className={styles.archiveTitle}>{item.title}</div>
+      <div className={styles.archiveVenue} style={{ color }}>
+        {item.venue}
+        {item.url && <> · <ExtLink href={item.url} className={styles.pLink}>SOURCE ↗</ExtLink></>}
+      </div>
+    </div>
+  )
+}
+
 // ── node panel contents ────────────────────────────────────────────────────────
 function CoreContent({ onNav }) {
   return (
@@ -156,33 +182,28 @@ function CoreContent({ onNav }) {
       <div className={styles.section}>
         <SectionLabel>Operator Profile</SectionLabel>
         <div className={styles.profileRow}>
-          <div className={styles.avatar}>RB</div>
+          <div className={styles.avatar} aria-hidden="true">{PROFILE.initials}</div>
           <div>
             <div className={styles.profileName}>{PROFILE.name}</div>
             <div className={styles.profileRole}>{PROFILE.role}</div>
-            <div className={styles.profileDeg} style={{ color: 'var(--sig)' }}>{PROFILE.degree} · {PROFILE.classOf}</div>
+            <div className={styles.profileDeg} style={{ color: 'var(--sig)' }}>{PROFILE.degree} · {PROFILE.graduation}</div>
           </div>
         </div>
         <p className={styles.bio}>{PROFILE.tagline}</p>
         <div className={styles.statGrid}>
-          {[
-            ['COMMITS/WK', PROFILE.commitsPerWeek, 'var(--sig)'],
-            ['REPOS',      PROFILE.repos,           'var(--vio)'],
-            ['GPA',        PROFILE.gpaDisplay,       'var(--sig)'],
-            ['INTERNSHIP', 'Jun 2026',               'var(--amb)'],
-          ].map(([l, v, c]) => (
-            <div key={l} className={styles.statCell}>
-              <div className={styles.statLabel}>{l}</div>
-              <div className={styles.statValue} style={{ color: c }}>{v}</div>
+          {PROFILE.stats.map(({ label, value, color }) => (
+            <div key={label} className={styles.statCell}>
+              <div className={styles.statLabel}>{label}</div>
+              <div className={styles.statValue} style={{ color: COLORS[color] }}>{value}</div>
             </div>
           ))}
         </div>
       </div>
       <div className={styles.section}>
         <SectionLabel>Navigate</SectionLabel>
-        {['about','projects','experience','skills','contact','archive'].map(id => (
+        {NODES.filter(n => n.id !== 'core').map(({ id }) => (
           <button key={id} className={styles.navBtn} onClick={() => onNav(id)}>
-            <span>{id.charAt(0).toUpperCase() + id.slice(1)}</span>
+            <span>{id}</span>
             <span>→</span>
           </button>
         ))}
@@ -196,12 +217,14 @@ function AboutContent() {
     <>
       <div className={styles.section}>
         <SectionLabel>Identity</SectionLabel>
-        <p className={styles.bodyText}>
-          Third-year CS student at USF Honors College. I build on-device AI, distributed financial platforms,
-          and full-stack mobile apps — from RoBERTa classifiers running on-device to stock prediction engines
-          tracking 70k+ securities.
-        </p>
+        <p className={styles.bodyText}>{PROFILE.bio}</p>
         <blockquote className={styles.quote}>{PROFILE.philosophy}</blockquote>
+      </div>
+      <div className={styles.section}>
+        <SectionLabel>Now</SectionLabel>
+        <ul className={styles.nowList}>
+          {PROFILE.now.map(item => <li key={item}>{item}</li>)}
+        </ul>
       </div>
       <div className={styles.section}>
         <SectionLabel>Profile</SectionLabel>
@@ -209,21 +232,20 @@ function AboutContent() {
           ['Handle', PROFILE.handle],
           ['Degree', PROFILE.degree],
           ['GPA', PROFILE.gpa],
-          ['Location', 'Tampa, FL · UTC-4'],
+          ['Graduation', PROFILE.graduation],
+          ['Location', PROFILE.location],
           ['Status', PROFILE.status],
         ].map(([k, v]) => (
           <div key={k} className={styles.tableRow}>
             <span className={styles.tableKey}>{k}</span>
-            <span>{v}</span>
+            <span className={styles.tableVal}>{v}</span>
           </div>
         ))}
       </div>
       <div className={styles.section}>
         <SectionLabel>Coursework</SectionLabel>
         <div className={styles.tagCloud}>
-          {PROFILE.coursework.map(c => (
-            <span key={c} className={styles.tag} style={{ color: 'var(--vio)', borderColor: 'rgba(184,156,255,.22)' }}>{c}</span>
-          ))}
+          {PROFILE.coursework.map(c => <span key={c} className={styles.tag} style={VIO_TAG}>{c}</span>)}
         </div>
       </div>
     </>
@@ -268,11 +290,29 @@ function SkillsContent() {
         {SKILLS.frameworks.map(s => <SkillBar key={s.label} {...s} />)}
       </div>
       <div className={styles.section}>
+        <SectionLabel>Toolchain</SectionLabel>
+        {SKILLS.toolchain.map(({ group, items }) => (
+          <div key={group} className={styles.toolRow}>
+            <span className={styles.toolGroup}>{group}</span>
+            <div className={styles.tagCloud}>
+              {items.map(t => <span key={t} className={styles.tag} style={VIO_TAG}>{t}</span>)}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className={styles.section}>
         <SectionLabel>Cognitive Load Distribution</SectionLabel>
         <RadarChart axes={SKILLS.radar.axes} values={SKILLS.radar.values} />
       </div>
     </>
   )
+}
+
+const CONTACT_HREF = {
+  email:    v => `mailto:${v}`,
+  github:   v => `https://${v}`,
+  linkedin: v => `https://${v}`,
+  phone:    v => `tel:+1${v.replace(/\D/g, '')}`,
 }
 
 function ContactContent() {
@@ -281,16 +321,15 @@ function ContactContent() {
       <div className={styles.section}>
         <SectionLabel>Secure Channels</SectionLabel>
         {Object.entries(CONTACT).map(([k, v]) => {
-          const href = k === 'email' ? `mailto:${v}` :
-                       k === 'github' ? `https://${v}` :
-                       k === 'linkedin' ? `https://${v}` : null
+          const href = CONTACT_HREF[k]?.(v)
+          const external = href?.startsWith('https://')
           return (
             <div key={k} className={styles.contactRow}>
               <span className={styles.contactKey}>{k}</span>
               {href
-                ? <a href={href} className={styles.contactVal} target="_blank" rel="noopener noreferrer">{v}</a>
+                ? <a href={href} className={styles.contactVal} {...(external ? { target: '_blank', rel: 'noopener noreferrer' } : {})}>{v}</a>
                 : <span className={styles.contactVal}>{v}</span>}
-              {href && <span className={styles.contactArrow}>→</span>}
+              {href && <span className={styles.contactArrow} aria-hidden="true">→</span>}
             </div>
           )
         })}
@@ -298,11 +337,8 @@ function ContactContent() {
       <div className={styles.section}>
         <SectionLabel>Availability</SectionLabel>
         <div className={styles.availBox}>
-          <div className={styles.availStatus}>STATUS: INCOMING INTERN · JUN 2026</div>
-          <p className={styles.availText}>
-            Starting J.P. Morgan Chase SEP internship Jun 2026. Open to full-time roles starting May 2027
-            in software engineering, distributed systems, or applied ML. Based in Tampa, FL — open to relocation.
-          </p>
+          <div className={styles.availStatus}>{AVAILABILITY.status}</div>
+          <p className={styles.availText}>{AVAILABILITY.text}</p>
         </div>
         <p className={styles.consoleTip}>
           Type <code className={styles.code}>sudo hire</code> in the console below to send a hire request.
@@ -317,33 +353,25 @@ function ArchiveContent() {
     <>
       <div className={styles.section}>
         <SectionLabel>Research</SectionLabel>
-        {ARCHIVE.publications.map(p => (
-          <div key={p.code} className={styles.archiveCard} style={{ borderColor: 'rgba(184,156,255,.18)', background: 'rgba(184,156,255,.025)' }}>
-            <div className={styles.archiveCode}>{p.code}</div>
-            <div className={styles.archiveTitle}>{p.title}</div>
-            <div className={styles.archiveVenue} style={{ color: 'var(--vio)' }}>{p.venue}</div>
-          </div>
-        ))}
+        {ARCHIVE.research.map(item => <ArchiveCard key={item.code} item={item} tone="vio" />)}
       </div>
       <div className={styles.section}>
         <SectionLabel>Hackathons</SectionLabel>
-        {ARCHIVE.talks.map(t => (
-          <div key={t.code} className={styles.archiveCard} style={{ borderColor: 'rgba(124,255,178,.14)', background: 'rgba(124,255,178,.02)' }}>
-            <div className={styles.archiveCode}>{t.code}</div>
-            <div className={styles.archiveTitle}>{t.title}</div>
-            <div className={styles.archiveVenue} style={{ color: 'var(--sig)' }}>{t.venue}</div>
-          </div>
-        ))}
+        {ARCHIVE.hackathons.map(item => <ArchiveCard key={item.code} item={item} tone="sig" />)}
       </div>
       <div className={styles.section}>
-        <SectionLabel>Awards</SectionLabel>
-        {ARCHIVE.awards.map(a => (
+        <SectionLabel>Earlier Builds</SectionLabel>
+        {ARCHIVE.builds.map(item => <ArchiveCard key={item.code} item={item} tone="amb" />)}
+      </div>
+      <div className={styles.section}>
+        <SectionLabel>Honors</SectionLabel>
+        {ARCHIVE.honors.map(a => (
           <div key={a.code} className={styles.awardRow}>
             <div>
               <div className={styles.archiveCode}>{a.code}</div>
               <div className={styles.archiveTitle}>{a.title}</div>
             </div>
-            <div style={{ color: 'var(--amb)', fontSize: 10 }}>{a.venue}</div>
+            <div className={styles.awardVenue}>{a.venue}</div>
           </div>
         ))}
       </div>
@@ -353,13 +381,13 @@ function ArchiveContent() {
 
 // ── Panel shell ────────────────────────────────────────────────────────────────
 const PANEL_META = {
-  core:       { kicker: 'NODE · CORE.SYS',   title: 'Rishabh Bhargav'     },
+  core:       { kicker: 'NODE · CORE.SYS',   title: PROFILE.name           },
   about:      { kicker: 'NODE · ABOUT.ME',   title: 'Who I Am'             },
   projects:   { kicker: 'NODE · PROJECTS',   title: 'Active Services'      },
   experience: { kicker: 'NODE · EXPERIENCE', title: 'Execution Trace'      },
   skills:     { kicker: 'NODE · SKILLS',     title: 'Resource Allocation'  },
   contact:    { kicker: 'NODE · CONTACT',    title: 'Open Channels'        },
-  archive:    { kicker: 'NODE · ARCHIVE',    title: 'Publications & Talks' },
+  archive:    { kicker: 'NODE · ARCHIVE',    title: 'Research & Hackathons' },
 }
 
 const CONTENT_MAP = {
@@ -372,20 +400,22 @@ const CONTENT_MAP = {
   archive:    ArchiveContent,
 }
 
-export function Panel({ nodeId, onClose, onNav }) {
+export function Panel({ nodeId, onClose, onNav, notice }) {
   const meta = PANEL_META[nodeId]
   const Content = CONTENT_MAP[nodeId]
   if (!meta || !Content) return null
   return (
-    <aside className={styles.panel}>
+    <aside className={styles.panel} aria-label={meta.title}>
       <div className={styles.panelHeader}>
         <div>
           <div className={styles.panelKicker}>{meta.kicker}</div>
-          <div className={styles.panelTitle}>{meta.title}</div>
+          <h2 className={styles.panelTitle}>{meta.title}</h2>
         </div>
         <button className={styles.closeBtn} onClick={onClose}>✕ CLOSE</button>
       </div>
-      <div className={styles.panelBody}>
+      {/* keyed so each section starts scrolled to the top and replays its entry animations */}
+      <div key={nodeId} className={styles.panelBody}>
+        {notice && <p className={styles.notice}>{notice}</p>}
         <Content onNav={onNav} />
       </div>
     </aside>

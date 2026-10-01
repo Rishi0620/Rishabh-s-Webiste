@@ -27,6 +27,7 @@
   cursor: pointer; transition: color .15s;
 }
 .tabBtn:hover { color: var(--sig); }
+.tabBtn:focus-visible { outline: 1px solid var(--sig); outline-offset: 2px; }
 
 .onDot { color: var(--sig); }
 .sep { color: rgba(255,255,255,.12); }
@@ -40,7 +41,13 @@
 .buf::-webkit-scrollbar { width: 3px; }
 .buf::-webkit-scrollbar-thumb { background: rgba(124,255,178,.15); }
 
+.line {
+  white-space: pre;
+  font-size: 10.5px;
+}
+
 .prompt {
+  cursor: text;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -62,9 +69,13 @@
   caret-color: var(--sig);
 }
 .input::placeholder { color: var(--dim); }
+.input { min-width: 0; }
 
-.cursor {
-  color: var(--sig);
-  animation: blink 1s steps(1) infinite;
+@media (max-width: 720px) {
+  .promptUser, .promptDir, .promptPath { display: none; }
+  .buf { max-height: 96px; }
 }
-@keyframes blink { 0%,49%{opacity:1} 50%,100%{opacity:0} }
+/* iOS zooms the page when a focused input is under 16px */
+@media (pointer: coarse) {
+  .input { font-size: 16px; }
+}

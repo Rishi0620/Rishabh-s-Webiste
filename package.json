@@ -1,7 +1,7 @@
 {
   "name": "useros",
   "private": true,
-  "version": "1.0.0",
+  "version": "1.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -11,9 +11,7 @@
   "dependencies": {
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
-    "three": "^0.163.0",
-    "@react-three/fiber": "^8.16.8",
-    "@react-three/drei": "^9.105.4"
+    "three": "^0.163.0"
   },
   "devDependencies": {
     "@types/react": "^18.3.1",

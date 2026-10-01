@@ -1,5 +1,5 @@
 // ── Graph node & edge definitions ─────────────────────────────────────────────
-// Add new nodes here to grow the graph — they'll appear in 3D space automatically.
+// Add new nodes here to grow the graph — they'll appear in 3D space and in the nav automatically.
 // pos: [x, y, z] in Three.js world units
 // color: hex number (0xRRGGBB)
 // r: sphere radius

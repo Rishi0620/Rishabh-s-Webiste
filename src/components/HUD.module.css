@@ -30,6 +30,7 @@
   display: flex;
   align-items: center;
   gap: 9px;
+  white-space: nowrap;
 }
 
 .brand  { color: var(--txt); }
@@ -67,6 +68,7 @@
 .nav {
   display: flex;
   gap: 16px;
+  min-width: 0;
 }
 .navBtn {
   background: none;
@@ -80,8 +82,10 @@
   transition: color .15s;
   padding: 0;
 }
+.navBtn { white-space: nowrap; flex-shrink: 0; }
 .navBtn:hover { color: var(--sig); }
 .navBtn.active { color: var(--sig); }
+.navBtn:focus-visible { outline: 1px solid var(--sig); outline-offset: 3px; }
 
 /* chips */
 .chips { display: flex; gap: 5px; }
@@ -100,4 +104,21 @@
 .dot {
   width: 5px; height: 5px;
   border-radius: 50%;
+}
+
+/* narrow screens: keep the essentials, let the nav scroll sideways */
+@media (max-width: 900px) {
+  .chips { display: none; }
+}
+@media (max-width: 720px) {
+  .wideOnly { display: none; }
+  .row2 { padding: 0; }
+  .nav {
+    overflow-x: auto;
+    padding: 8px 14px;
+    gap: 18px;
+    scrollbar-width: none;
+  }
+  .nav::-webkit-scrollbar { display: none; }
+  .navBtn { font-size: 11px; }
 }

@@ -9,7 +9,9 @@
   align-items: center;
   justify-content: center;
   gap: 14px;
-  cursor: crosshair;
+  padding: 0 20px;
+  text-align: center;
+  cursor: pointer;
 }
 
 .title {
@@ -48,18 +50,29 @@
 
 .keys {
   display: flex;
-  gap: 8px;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 14px;
   align-items: center;
   font-size: 10px;
   color: var(--mut);
   font-family: 'JetBrains Mono', ui-monospace, monospace;
 }
+.keys span { white-space: nowrap; }
 .keys kbd {
   border: 1px solid rgba(255,255,255,.15);
   padding: 2px 6px;
+  margin-right: 5px;
   font: inherit;
   color: var(--txt);
   border-radius: 2px;
+}
+
+.touchOnly, .keys.touchOnly { display: none; }
+@media (pointer: coarse) {
+  .mouseOnly, .keys.mouseOnly { display: none; }
+  .touchOnly { display: inline; }
+  .keys.touchOnly { display: flex; }
 }
 
 /* crosshair */
@@ -80,12 +93,35 @@
 .xhair::before { left: 50%; top: 0; width: 1px; height: 100%; transform: translateX(-50%); }
 .xhair::after  { top: 50%; left: 0; height: 1px; width: 100%; transform: translateY(-50%); }
 
+/* touch selects by tapping a node directly, so the crosshair has no job there */
+@media (pointer: coarse) {
+  .xhair, .xhairLabel { display: none; }
+}
+
+.xhairLabel {
+  position: fixed;
+  left: 50%; top: calc(50% + 22px);
+  transform: translateX(-50%);
+  z-index: 20;
+  pointer-events: none;
+  font-size: 9px;
+  letter-spacing: .18em;
+  text-transform: uppercase;
+  color: var(--sig);
+  background: rgba(3,5,9,.8);
+  border: 1px solid rgba(124,255,178,.25);
+  padding: 3px 8px;
+  white-space: nowrap;
+}
+
 /* controls hint */
 .hint {
   position: fixed;
-  bottom: 38px;
-  left: 50%;
-  transform: translateX(-50%);
+  bottom: calc(var(--con-h, 36px) + 8px);
+  left: 12px;
+  max-width: calc(100vw - 24px);
+  flex-wrap: wrap;
+  white-space: nowrap;
   z-index: 30;
   background: rgba(3,5,9,0.85);
   border: 1px solid var(--line);
@@ -113,7 +149,7 @@
 /* fly bar */
 .flyBar {
   position: fixed;
-  top: 64px;
+  top: calc(var(--hud-h, 58px) + 6px);
   left: 50%;
   transform: translateX(-50%);
   z-index: 35;
@@ -142,4 +178,12 @@
 @keyframes pd {
   0%,100% { box-shadow: 0 0 0 0 rgba(124,255,178,.6); }
   50%      { box-shadow: 0 0 0 5px rgba(124,255,178,0); }
+}
+
+/* phones: the bottom sheet covers the lower screen, so the hint moves under the HUD */
+@media (max-width: 720px) {
+  .hint {
+    bottom: auto;
+    top: calc(var(--hud-h, 58px) + 36px);
+  }
 }

@@ -1,88 +1,118 @@
 import { useRef, useState, useCallback, useEffect } from 'react'
-import * as THREE from 'three'
 import { useScene } from './hooks/useScene'
 import { useCamera } from './hooks/useCamera'
 import { HUD } from './components/HUD'
 import { Panel } from './components/Panel'
 import { Console } from './components/Console'
 import { LockOverlay, Crosshair, ControlsHint, FlyBar } from './components/LockOverlay'
-import './index.css'
+import { NODE_MAP } from './data/graph'
+
+const HINT_MS = 8000
+const COMPACT_QUERY = '(max-width: 720px)'
+const PANEL_WIDTH = 440
+const CAMERA_FOV_TAN = Math.tan((70 * Math.PI) / 360)
+
+// How far to turn the camera so the focused node sits in the part of the canvas the panel leaves free.
+function viewBiasFor(panelOpen) {
+  if (!panelOpen) return [0, 0]
+  const h = window.innerHeight
+  if (window.matchMedia(COMPACT_QUERY).matches) {
+    // bottom sheet: push the node into the upper part of the screen
+    return [0, -Math.atan(0.55 * CAMERA_FOV_TAN)]
+  }
+  // side panel: shift the node left by half the panel width
+  return [-Math.atan((PANEL_WIDTH * CAMERA_FOV_TAN) / h), 0]
+}
 
 export default function App() {
   const canvasRef = useRef(null)
 
-  // UI state
   const [entered,     setEntered]     = useState(false)
   const [currentNode, setCurrentNode] = useState('core')
   const [openPanel,   setOpenPanel]   = useState('core')
   const [panelOpen,   setPanelOpen]   = useState(true)
-  const [position,    setPosition]    = useState({ x: 0, y: 0, z: 22 })
   const [hoveredNode, setHoveredNode] = useState(null)
   const [flying,      setFlying]      = useState(false)
-  const [hintVisible, setHintVisible] = useState(true)
+  const [hintVisible, setHintVisible] = useState(false)
+  const [webglFailed, setWebglFailed] = useState(false)
 
-  // Hide controls hint after 8s
-  useEffect(() => {
-    const id = setTimeout(() => setHintVisible(false), 8000)
-    return () => clearTimeout(id)
-  }, [])
-
-  // Called when camera flies to a node and arrives
-  const onNodeClick = useCallback((id) => {
+  const onArrive = useCallback((id) => {
     setCurrentNode(id)
     setOpenPanel(id)
     setPanelOpen(true)
-    setFlying(false)
   }, [])
 
-  // Fly to node (from HUD nav, panel buttons, console)
-  const handleNav = useCallback((id) => {
-    setFlying(true)
-    flyToNode(id)
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+  const onInitError = useCallback(() => setWebglFailed(true), [])
 
-  // ── scene hook ────────────────────────────────────────────────────────────
-  const { enter, exit, setLook, setKey, flyToNode, handleCanvasClick } = useScene({
+  const { enter, exit, setKey, setLook, nudgeLook, rebaseLook, setViewBias, getPosition, flyToNode, pick } = useScene({
     canvasRef,
-    onNodeClick,
+    onArrive,
     onHover: setHoveredNode,
-    onPositionUpdate: useCallback((p) => setPosition({ x: p.x, y: p.y, z: p.z }), []),
+    onFlyChange: setFlying,
+    onInitError,
   })
 
-  const handleEnter = useCallback(() => { setEntered(true); enter() }, [enter])
-  const handleExit  = useCallback(() => { setEntered(false); exit() }, [exit])
+  const handleEnter = useCallback(() => {
+    if (webglFailed) return
+    setEntered(true)
+    enter()
+  }, [enter, webglFailed])
+  const handleExit = useCallback(() => {
+    setEntered(false)
+    exit()
+    if (document.pointerLockElement) document.exitPointerLock?.()
+  }, [exit])
 
-  const handleConsole = useCallback(() => {
-    document.getElementById('useros-console-input')?.focus()
-  }, [])
-
-  // ── camera hook ───────────────────────────────────────────────────────────
   const { onCanvasClick } = useCamera({
     canvasRef,
     entered,
-    onEnter:  handleEnter,
-    onExit:   handleExit,
-    onConsole: handleConsole,
+    onEnter: handleEnter,
+    onExit: handleExit,
     setKey,
     setLook,
-    handleCanvasClick,
+    nudgeLook,
+    rebaseLook,
+    pick,
   })
 
-  const handleNavAndFly = useCallback((id) => {
-    setFlying(true)
+  // show the controls hint for a few seconds each time the visitor enters
+  useEffect(() => {
+    if (!entered) { setHintVisible(false); return }
+    setHintVisible(true)
+    const id = setTimeout(() => setHintVisible(false), HINT_MS)
+    return () => clearTimeout(id)
+  }, [entered])
+
+  useEffect(() => {
+    const apply = () => setViewBias(...viewBiasFor(panelOpen))
+    apply()
+    window.addEventListener('resize', apply)
+    return () => window.removeEventListener('resize', apply)
+  }, [panelOpen, setViewBias])
+
+  const handlePanelNav = useCallback((id) => {
+    setOpenPanel(id)
+    setPanelOpen(true)
     flyToNode(id)
   }, [flyToNode])
 
+  const closePanel = useCallback(() => setPanelOpen(false), [])
+
+  const showOverlay = !entered && !webglFailed
+  // no "click to open" prompt for the node whose panel is already showing
+  const alreadyOpen = panelOpen && hoveredNode === openPanel
+  const crosshairLabel = hoveredNode && !alreadyOpen ? NODE_MAP[hoveredNode]?.label : null
+
   return (
     <>
-      {/* Three.js canvas */}
       <canvas
         ref={canvasRef}
-        style={{ position: 'fixed', inset: 0, display: 'block', cursor: entered ? 'none' : 'default' }}
+        aria-label="3D node graph of portfolio sections. Use the navigation bar above to open a section."
+        style={{ position: 'fixed', inset: 0, display: 'block', touchAction: 'none', cursor: entered ? 'none' : 'default' }}
         onClick={onCanvasClick}
       />
 
-      {/* CRT + vignette */}
+      {/* CRT scanlines + vignette */}
       <div style={{
         position: 'fixed', inset: 0, zIndex: 9999, pointerEvents: 'none',
         background: 'repeating-linear-gradient(to bottom,transparent 0,transparent 2px,rgba(0,0,0,.05) 3px,transparent 4px)',
@@ -92,36 +122,26 @@ export default function App() {
         background: 'radial-gradient(ellipse at 50% 50%,transparent 55%,rgba(0,0,0,.72) 100%)',
       }} />
 
-      {/* Lock overlay */}
-      {!entered && <LockOverlay onEnter={handleEnter} />}
+      {showOverlay && <LockOverlay onEnter={handleEnter} />}
 
-      {/* Crosshair */}
-      {entered && <Crosshair />}
+      {entered && <Crosshair label={crosshairLabel} />}
 
-      {/* Fly bar */}
       <FlyBar visible={flying} />
 
-      {/* HUD */}
-      <HUD
-        currentNode={currentNode}
-        position={position}
-        onNav={handleNavAndFly}
-      />
+      <HUD currentNode={currentNode} getPosition={getPosition} onNav={flyToNode} />
 
-      {/* Controls hint */}
       {entered && hintVisible && <ControlsHint />}
 
-      {/* Content panel */}
       {panelOpen && (
         <Panel
           nodeId={openPanel}
-          onClose={() => setPanelOpen(false)}
-          onNav={(id) => { handleNavAndFly(id); setOpenPanel(id); setPanelOpen(true) }}
+          onClose={closePanel}
+          onNav={handlePanelNav}
+          notice={webglFailed ? 'WebGL is unavailable in this browser, so the 3D view is off. Everything else works.' : null}
         />
       )}
 
-      {/* Console */}
-      <Console onGoto={handleNavAndFly} />
+      <Console onGoto={flyToNode} />
     </>
   )
 }
